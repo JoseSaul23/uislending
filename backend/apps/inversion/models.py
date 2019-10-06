@@ -1,0 +1,45 @@
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.conf import settings
+
+class User(AbstractUser):
+    saldo = models.PositiveIntegerField(default=0)
+    def __str__(self):
+        full_name = self.first_name +" "+ self.last_name
+        return full_name
+    class Meta:
+        db_table = "User"
+
+class Categoria(models.Model):
+    nombre = models.CharField(max_length=50)
+    def __str__(self):
+        return self.nombre
+    class Meta:
+        db_table = "Categoria"
+
+class Idea(models.Model):
+    nombre = models.CharField(max_length=50)
+    descripcion = models.TextField(max_length=120)
+    monto_objetivo = models.PositiveIntegerField()
+    monto_actual = models.PositiveIntegerField(default=0)
+    intereses = models.PositiveSmallIntegerField()
+    fecha_publicada = models.DateTimeField(auto_now_add=True)
+    fecha_limite = models.DateTimeField()
+    fecha_reembolso = models.DateTimeField()
+    estado = models.CharField(max_length=20)
+    imagen = models.ImageField(upload_to='imagenes/')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
+    def __str__(self):
+        return self.nombre
+    class Meta:
+        db_table = "Idea"
+
+class Inversion(models.Model):
+    fecha_inversion = models.DateTimeField(auto_now_add=True)
+    monto_invertido = models.IntegerField()
+    monto_interese = models.IntegerField() #Necesario??
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    idea = models.ForeignKey(Idea, on_delete=models.CASCADE)
+    class Meta:
+        db_table = "Inversion"  
