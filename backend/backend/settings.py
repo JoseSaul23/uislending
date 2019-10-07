@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'apps.inversion',
     'djoser',
-    'rest_framework.authtoken',
+    'rest_framework.authtoken', #djoser
+    'corsheaders', #Cross-origin resource sharing
 ]
 
 REST_FRAMEWORK = {
@@ -64,6 +65,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
