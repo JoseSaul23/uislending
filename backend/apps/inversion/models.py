@@ -41,5 +41,7 @@ class Inversion(models.Model):
     monto_interese = models.IntegerField() #Necesario??
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     idea = models.ForeignKey(Idea, on_delete=models.CASCADE)
+    def __str__(self):
+        return self.idea,self.fecha_inversion
     class Meta:
         db_table = "Inversion"  
