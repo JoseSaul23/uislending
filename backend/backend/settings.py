@@ -43,8 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'apps.inversion',
-    'djoser',
-    'rest_framework.authtoken', #djoser
+    'djoser', #Autenticaciones con token
+    'rest_framework.authtoken',
     'corsheaders', #Cross-origin resource sharing
 ]
 

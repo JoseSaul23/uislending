@@ -1,11 +1,13 @@
 from django.shortcuts import render
-
-from rest_framework import viewsets
+from rest_framework import viewsets, generics, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from djoser import utils
+from djoser.serializers import TokenCreateSerializer
 from . import models
 from . import serializers
 from . import services
+from djoser.conf import settings
 
 class UserView(viewsets.ModelViewSet):
     queryset = services.getUsuarios()
@@ -55,3 +57,16 @@ class IdeaView(viewsets.ModelViewSet):
 class InversionView(viewsets.ModelViewSet):
     queryset = services.getInversiones()
     serializer_class = serializers.InversionSerializer
+
+class TokenCreateView(utils.ActionViewMixin, generics.GenericAPIView):
+    serializer_class = TokenCreateSerializer
+    permission_classes = settings.PERMISSIONS.token_create
+
+    def _action(self, serializer):
+        token = utils.login_user(self.request, serializer.user)
+        token_serializer_class = settings.SERIALIZERS.token
+        content = {
+            'token': token_serializer_class(token).data["auth_token"],
+            'id': serializer.user.id
+        }
+        return Response(data=content,status=status.HTTP_200_OK,)
