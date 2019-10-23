@@ -17,7 +17,6 @@ class UserView(viewsets.ModelViewSet):
     @action(detail=True, methods=['GET'], name='Ideas publicadas')
     def ideas(self, request, *args, **kwargs):
         usuario = self.get_object()
-        #queryset = models.Idea.objects.all().filter(usuario=usuario)
         queryset = services.getIdeas(usuario=usuario)
         serializer = serializers.IdeaSerializer(queryset, many=True)
         return Response(serializer.data)
@@ -46,7 +45,7 @@ class IdeaPagination(pagination.PageNumberPagination):
     page_size = 4
 
 class IdeaView(viewsets.ModelViewSet):
-    queryset = services.getIdeas()
+    queryset = services.getIdeas(estado="publicada")
     serializer_class = serializers.IdeaSerializer
     pagination_class = IdeaPagination
 

@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api/auth/token/login', views.TokenCreateView.as_view()),
+    path('api/auth/token/login/', views.TokenCreateView.as_view()),
     path('api/auth/', include('djoser.urls.authtoken')), 
 ]
 

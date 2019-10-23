@@ -4,6 +4,7 @@ from django.conf import settings
 
 class User(AbstractUser):
     saldo = models.PositiveIntegerField(default=0)
+    imagen = models.ImageField(upload_to='imagenesUsuarios/', default='imagenesUsuarios/usuario.png')
     def __str__(self):
         full_name = self.first_name +" "+ self.last_name
         return full_name
@@ -23,11 +24,11 @@ class Idea(models.Model):
     monto_objetivo = models.PositiveIntegerField()
     monto_actual = models.PositiveIntegerField(default=0)
     intereses = models.PositiveSmallIntegerField()
-    fecha_publicada = models.DateTimeField(auto_now_add=True)
-    fecha_limite = models.DateTimeField()
-    fecha_reembolso = models.DateTimeField()
+    fecha_publicada = models.DateField(auto_now_add=True)
+    fecha_limite = models.DateField()
+    fecha_reembolso = models.DateField()
     estado = models.CharField(max_length=20)
-    imagen = models.ImageField(upload_to='imagenes/')
+    imagen = models.ImageField(upload_to='imagenesIdeas/')
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
     def __str__(self):
@@ -36,7 +37,7 @@ class Idea(models.Model):
         db_table = "Idea"
 
 class Inversion(models.Model):
-    fecha_inversion = models.DateTimeField(auto_now_add=True)
+    fecha_inversion = models.DateField(auto_now_add=True)
     monto_invertido = models.IntegerField()
     monto_interese = models.IntegerField() #Necesario??
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
