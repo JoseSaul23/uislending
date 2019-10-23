@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import viewsets, generics, status
+from rest_framework import viewsets, generics, status, pagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from djoser import utils
@@ -42,9 +42,13 @@ class CategoriaView(viewsets.ModelViewSet):
         serializer = serializers.IdeaSerializer(queryset, many=True)
         return Response(serializer.data)
 
+class IdeaPagination(pagination.PageNumberPagination):
+    page_size = 4
+
 class IdeaView(viewsets.ModelViewSet):
     queryset = services.getIdeas()
     serializer_class = serializers.IdeaSerializer
+    pagination_class = IdeaPagination
 
     #Listar inversiones hechas a una idea
     @action(detail=True, methods=['GET'], name='Inversiones de la idea')
