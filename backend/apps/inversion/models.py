@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator, MaxLengthValidator
 from datetime import date
 from django.core.exceptions import ValidationError
+from django.db.transaction import atomic
 
 class User(AbstractUser):
     saldo = models.PositiveIntegerField(
@@ -21,6 +22,19 @@ class User(AbstractUser):
         full_name = self.first_name +" "+ self.last_name
         return full_name
 
+    @classmethod
+    def realizarInversion(self, id, monto):
+        with atomic():
+            account = (
+                self.objects
+                .select_for_update()
+                .get(id=id)
+            )
+            account.saldo -= monto
+            account.save()
+        return account
+
+
     class Meta:
         db_table = "User"
 
@@ -35,6 +49,11 @@ class Categoria(models.Model):
         db_table = "Categoria"
 
 
+class PublicaManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(estado='P')
+
+
 class Idea(models.Model):
     fallida = 'F'
     exitosa = 'E'
@@ -46,6 +65,7 @@ class Idea(models.Model):
         (publica, 'Publica'),
         (inactiva, 'Inactiva'),
     ]
+
     nombre = models.CharField(max_length=50)
     descripcion = models.TextField(
         validators=[
@@ -87,16 +107,19 @@ class Idea(models.Model):
         on_delete=models.CASCADE
     )
 
+    objects = models.Manager()
+    publicas = PublicaManager()
+
     def __str__(self):
         return self.nombre
 
     def clean(self):
         self.validarFechas()
         self.validarMontoActual()
-        self.setEstadoExitosa()
         
     def save(self, *args, **kwargs):
         self.clean()
+        self.setEstadoExitosa()
         super(Idea, self).save(*args, **kwargs)
 
     #def setEstadoFallida(self):
@@ -120,9 +143,24 @@ class Idea(models.Model):
                 "El monto actual no puede ser mayor al monto objetivo"
             ) 
 
+    @property
+    def tiempoRecaudo(self):    
+        return self.fecha_limite - self.fecha_publicada
+
+    @classmethod
+    def setMontoActual(self, id, monto):
+        with atomic():
+            account = (
+                self.objects
+                .select_for_update()
+                .get(id=id)
+            )
+            account.monto_actual += monto
+            account.save()
+        return account
+
     class Meta:
         db_table = "Idea"
-    #definir calculo de tiempo activo
 
 
 class Inversion(models.Model):
@@ -141,8 +179,12 @@ class Inversion(models.Model):
         on_delete=models.CASCADE
     )
 
+    @property
+    def reembolso(self):
+        return round(self.monto_invertido + (self.monto_invertido * (self.idea.intereses / 100)))
+
     def __str__(self):
-        return self.idea,self.fecha_inversion
+        return str(self.id)
 
     def clean(self):
         self.validarMontoInvertido()
@@ -151,6 +193,7 @@ class Inversion(models.Model):
         
     def save(self, *args, **kwargs):
         self.clean()
+        self.transaccion()
         super(Inversion, self).save(*args, **kwargs)
 
     def validarMontoInvertido(self):
@@ -173,6 +216,9 @@ class Inversion(models.Model):
                 "No se puede invertir en una idea no publicada."
             )
 
+    def transaccion(self):
+        self.idea.setMontoActual(self.idea.id, self.monto_invertido)
+        self.usuario.realizarInversion(self.usuario.id, self.monto_invertido)
+
     class Meta:
         db_table = "Inversion"  
-    #definir monto mas intereses

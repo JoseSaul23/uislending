@@ -55,13 +55,15 @@ class IdeaSerializer(serializers.ModelSerializer):
 
 
 class InversionSerializer(serializers.ModelSerializer):
-
+    reembolso = serializers.ReadOnlyField()
+    
     class Meta:
         model = models.Inversion
         fields = (
             'id',
             'fecha_inversion',
             'monto_invertido',
+            'reembolso',
             'usuario',
             'idea',
         )  
