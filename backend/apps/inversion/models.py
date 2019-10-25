@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator, MaxLengthValidator
+from datetime import date
+from django.core.exceptions import ValidationError
 
 class User(AbstractUser):
     saldo = models.PositiveIntegerField(
@@ -22,6 +24,7 @@ class User(AbstractUser):
     class Meta:
         db_table = "User"
 
+
 class Categoria(models.Model):
     nombre = models.CharField(max_length=50)
 
@@ -31,8 +34,8 @@ class Categoria(models.Model):
     class Meta:
         db_table = "Categoria"
 
-class Idea(models.Model):
 
+class Idea(models.Model):
     fallida = 'F'
     exitosa = 'E'
     publica = 'P'
@@ -86,10 +89,41 @@ class Idea(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    def clean(self):
+        self.validarFechas()
+        self.validarMontoActual()
+        self.setEstadoExitosa()
         
+    def save(self, *args, **kwargs):
+        self.clean()
+        super(Idea, self).save(*args, **kwargs)
+
+    #def setEstadoFallida(self):
+    #    if date.today() > self.fecha_limite:
+    #        self.estado = 'F'
+    #        return 'F'
+
+    def setEstadoExitosa(self):
+        if self.monto_actual == self.monto_objetivo:
+            self.estado = self.exitosa
+
+    def validarFechas(self):
+        if self.fecha_limite > self.fecha_reembolso:
+            raise ValidationError(
+                "La fecha limite no puede estar después de la fecha de reembolso"
+            )
+
+    def validarMontoActual(self):
+        if self.monto_actual > self.monto_objetivo:
+           raise ValidationError(
+                "El monto actual no puede ser mayor al monto objetivo"
+            ) 
+
     class Meta:
         db_table = "Idea"
     #definir calculo de tiempo activo
+
 
 class Inversion(models.Model):
     fecha_inversion = models.DateField(auto_now_add=True)
@@ -109,6 +143,35 @@ class Inversion(models.Model):
 
     def __str__(self):
         return self.idea,self.fecha_inversion
+
+    def clean(self):
+        self.validarMontoInvertido()
+        self.validarUsuario()
+        self.validarIdeaEstado()
+        
+    def save(self, *args, **kwargs):
+        self.clean()
+        super(Inversion, self).save(*args, **kwargs)
+
+    def validarMontoInvertido(self):
+        if self.monto_invertido > self.usuario.saldo:
+            raise ValidationError("No tiene saldo suficiente")
+        if self.monto_invertido > self.idea.monto_objetivo - self.idea.monto_actual:
+            raise ValidationError(
+                "La inversión no puede ser mayor a lo que falta para el objetivo."
+            )
+
+    def validarUsuario(self):
+        if self.usuario == self.idea.usuario:
+            raise ValidationError(
+                "No puede invertir en su propia idea."
+            )
+    
+    def validarIdeaEstado(self):
+        if self.idea.estado != "P":
+            raise ValidationError(
+                "No se puede invertir en una idea no publicada."
+            )
 
     class Meta:
         db_table = "Inversion"  

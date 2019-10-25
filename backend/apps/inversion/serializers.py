@@ -3,6 +3,7 @@ from djoser.serializers import UserCreateSerializer
 from . import models
 
 class UserSerializer(UserCreateSerializer):
+
     class Meta(UserCreateSerializer.Meta):
         model = models.User
         fields = (
@@ -16,7 +17,9 @@ class UserSerializer(UserCreateSerializer):
             'imagen'
         )
 
+
 class CategoriaSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = models.Categoria
         fields = (
@@ -24,7 +27,9 @@ class CategoriaSerializer(serializers.ModelSerializer):
             'nombre'
         )
 
+
 class IdeaSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = models.Idea
         fields = (
@@ -44,11 +49,10 @@ class IdeaSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, data):
-        if data['fecha_limite'] > data['fecha_reembolso']:
-            raise serializers.ValidationError(
-                                "La fecha limite no puede estar después de la fecha de reembolso"
-                                )
+        instance = models.Idea(**data)
+        instance.clean()
         return data
+
 
 class InversionSerializer(serializers.ModelSerializer):
 
@@ -63,21 +67,6 @@ class InversionSerializer(serializers.ModelSerializer):
         )  
 
     def validate(self, data):
-        if data['monto_invertido'] > data['usuario'].saldo:
-            raise serializers.ValidationError("No tiene saldo suficiente")
-
-        if data['monto_invertido'] > data['idea'].monto_objetivo - data['idea'].monto_actual:
-            raise serializers.ValidationError(
-                                "La inversión no puede ser mayor a lo que falta para el límite."
-                                )
-        
-        if data['usuario'] == data['idea'].usuario:
-            raise serializers.ValidationError(
-                                "No puede invertir en su propia idea."
-                                )
-        
-        if data['idea'].estado != "P":
-            raise serializers.ValidationError(
-                                "No se puede invertir en una idea no publicada."
-                                )
+        instance = models.Inversion(**data)
+        instance.clean()
         return data

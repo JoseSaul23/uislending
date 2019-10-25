@@ -8,6 +8,7 @@ from . import models
 from . import serializers
 from djoser.conf import settings
 
+
 class UserView(viewsets.ModelViewSet):
     queryset = models.User.objects.all()
     serializer_class = serializers.UserSerializer
@@ -28,6 +29,7 @@ class UserView(viewsets.ModelViewSet):
         serializer = serializers.InversionSerializer(queryset, many=True)
         return Response(serializer.data)     
 
+
 class CategoriaView(viewsets.ModelViewSet):
     queryset = models.Categoria.objects.all()
     serializer_class = serializers.CategoriaSerializer
@@ -40,8 +42,10 @@ class CategoriaView(viewsets.ModelViewSet):
         serializer = serializers.IdeaSerializer(queryset, many=True)
         return Response(serializer.data)
 
+
 class IdeaPagination(pagination.PageNumberPagination):
     page_size = 2
+
 
 class IdeaView(viewsets.ModelViewSet):
     queryset = models.Idea.objects.filter(estado="P")
@@ -56,9 +60,11 @@ class IdeaView(viewsets.ModelViewSet):
         serializer = serializers.InversionSerializer(queryset, many=True)
         return Response(serializer.data)
 
+
 class InversionView(viewsets.ModelViewSet):
     queryset = models.Inversion.objects.all()
     serializer_class = serializers.InversionSerializer
+
 
 class TokenCreateView(utils.ActionViewMixin, generics.GenericAPIView):
     serializer_class = TokenCreateSerializer
