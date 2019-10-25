@@ -34,6 +34,17 @@ class User(AbstractUser):
             account.save()
         return account
 
+    @classmethod
+    def recibirInversion(self, id, monto):
+        with atomic():
+            account = (
+                self.objects
+                .select_for_update()
+                .get(id=id)
+            )
+            account.saldo += monto
+            account.save()
+        return account
 
     class Meta:
         db_table = "User"
@@ -113,23 +124,10 @@ class Idea(models.Model):
     def __str__(self):
         return self.nombre
 
-    def clean(self):
-        self.validarFechas()
-        self.validarMontoActual()
-        
-    def save(self, *args, **kwargs):
-        self.clean()
-        self.setEstadoExitosa()
-        super(Idea, self).save(*args, **kwargs)
-
     #def setEstadoFallida(self):
     #    if date.today() > self.fecha_limite:
     #        self.estado = 'F'
     #        return 'F'
-
-    def setEstadoExitosa(self):
-        if self.monto_actual == self.monto_objetivo:
-            self.estado = self.exitosa
 
     def validarFechas(self):
         if self.fecha_limite > self.fecha_reembolso:
@@ -142,6 +140,26 @@ class Idea(models.Model):
            raise ValidationError(
                 "El monto actual no puede ser mayor al monto objetivo"
             ) 
+
+    def enviarInversionExitosa(self):
+        self.usuario.recibirInversion(
+                self.usuario.id, 
+                self.monto_actual,
+            )
+
+    def setEstadoExitosa(self):
+        if self.monto_actual == self.monto_objetivo:
+            self.estado = self.exitosa
+            self.enviarInversionExitosa()
+
+    def clean(self):
+        self.validarFechas()
+        self.validarMontoActual()
+        
+    def save(self, *args, **kwargs):
+        self.clean()
+        self.setEstadoExitosa()
+        super(Idea, self).save(*args, **kwargs)
 
     @property
     def tiempoRecaudo(self):    
@@ -186,16 +204,6 @@ class Inversion(models.Model):
     def __str__(self):
         return str(self.id)
 
-    def clean(self):
-        self.validarMontoInvertido()
-        self.validarUsuario()
-        self.validarIdeaEstado()
-        
-    def save(self, *args, **kwargs):
-        self.clean()
-        self.transaccion()
-        super(Inversion, self).save(*args, **kwargs)
-
     def validarMontoInvertido(self):
         if self.monto_invertido > self.usuario.saldo:
             raise ValidationError("No tiene saldo suficiente")
@@ -217,8 +225,19 @@ class Inversion(models.Model):
             )
 
     def transaccion(self):
-        self.idea.setMontoActual(self.idea.id, self.monto_invertido)
         self.usuario.realizarInversion(self.usuario.id, self.monto_invertido)
+        self.idea.setMontoActual(self.idea.id, self.monto_invertido)
+        ##hacer en una sola linea, realiazar inversion recibe id de la idea a la cual invertir
+        
+    def clean(self):
+        self.validarMontoInvertido()
+        self.validarUsuario()
+        self.validarIdeaEstado()
+        
+    def save(self, *args, **kwargs):
+        self.clean()
+        self.transaccion()
+        super(Inversion, self).save(*args, **kwargs)
 
     class Meta:
         db_table = "Inversion"  
