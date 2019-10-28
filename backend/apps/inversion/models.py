@@ -1,10 +1,10 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
-from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator, MaxLengthValidator
-from datetime import date
 from django.core.exceptions import ValidationError
-from django.db.transaction import atomic
+from django.conf import settings
+from datetime import date
+from .tasks import setEstadoFallida
 
 class User(AbstractUser):
     saldo = models.PositiveIntegerField(
@@ -13,7 +13,7 @@ class User(AbstractUser):
             MinValueValidator(0),
         ]
     )
-    imagen = models.ImageField(
+    imagen = models.ImageField( #redimensionar imagenes
         upload_to='imagenesUsuarios/', 
         default='imagenesUsuarios/usuario.png'
     )
@@ -23,28 +23,28 @@ class User(AbstractUser):
         return full_name
 
     @classmethod
-    def realizarInversion(self, id, monto):
-        with atomic():
-            account = (
-                self.objects
+    def retirarDinero(cls, id, dinero):
+        with transaction.atomic():
+            UserAccount = (
+                cls.objects
                 .select_for_update()
                 .get(id=id)
             )
-            account.saldo -= monto
-            account.save()
-        return account
-
+            if UserAccount.saldo < dinero:
+                raise ValidationError("No tiene saldo suficiente")
+            UserAccount.saldo -= dinero
+            UserAccount.save()
+       
     @classmethod
-    def recibirInversion(self, id, monto):
-        with atomic():
+    def recibirDinero(cls, id, dinero):
+        with transaction.atomic():
             account = (
-                self.objects
+                cls.objects
                 .select_for_update()
                 .get(id=id)
             )
-            account.saldo += monto
+            account.saldo += dinero
             account.save()
-        return account
 
     class Meta:
         db_table = "User"
@@ -121,18 +121,21 @@ class Idea(models.Model):
     objects = models.Manager()
     publicas = PublicaManager()
 
+    @property
+    def tiempoRecaudo(self):    
+        return self.fecha_limite - self.fecha_publicada
+
     def __str__(self):
         return self.nombre
-
-    #def setEstadoFallida(self):
-    #    if date.today() > self.fecha_limite:
-    #        self.estado = 'F'
-    #        return 'F'
 
     def validarFechas(self):
         if self.fecha_limite > self.fecha_reembolso:
             raise ValidationError(
                 "La fecha limite no puede estar después de la fecha de reembolso"
+            )
+        if self.id is None and self.fecha_limite < date.today(): #None, para que solo lo  haga cuando
+            raise ValidationError(                               #se inserta por primera vez.
+                "La fecha limite no puede estar antes de la fecha de hoy"
             )
 
     def validarMontoActual(self):
@@ -142,38 +145,73 @@ class Idea(models.Model):
             ) 
 
     def enviarInversionExitosa(self):
-        self.usuario.recibirInversion(
+        self.usuario.recibirDinero(
                 self.usuario.id, 
                 self.monto_actual,
             )
+        self.monto_actual = 0 #solucion temporal??
 
-    def setEstadoExitosa(self):
+    def revisarSiExitosa(self):
         if self.monto_actual == self.monto_objetivo:
             self.estado = self.exitosa
+            
+    def revisarEstado(self):
+        if self.estado == self.exitosa:
             self.enviarInversionExitosa()
+        elif self.estado == self.fallida and self.monto_actual > 0: 
+            inversiones = Inversion.objects.filter(idea=self)
+            for inversion in inversiones: 
+                inversion.devolucion()
+            self.monto_actual = 0  #solucion temporal??
+            pass
+        else:
+            pass
 
     def clean(self):
         self.validarFechas()
-        self.validarMontoActual()
+        self.validarMontoActual() #solo se puede borrar una idea si esta inactiva,fallida o exitosa
         
     def save(self, *args, **kwargs):
         self.clean()
-        self.setEstadoExitosa()
+        self.revisarSiExitosa()
+        self.revisarEstado()
+
+        # create_task = False
+        # if self.id is None and self.estado == self.publica:
+        #     # quitar condicion para que sea tambien en caso de modificacion
+        #     create_task = True # set the variable 
+
         super(Idea, self).save(*args, **kwargs)
 
-    @property
-    def tiempoRecaudo(self):    
-        return self.fecha_limite - self.fecha_publicada
+        # create_task = True
+        # if create_task: 
+        #     setEstadoFallida.apply_async(args=[self.id], eta=self.fecha_limite)
 
     @classmethod
-    def setMontoActual(self, id, monto):
-        with atomic():
+    def recibirMonto(cls, id, monto):
+        with transaction.atomic():
             account = (
-                self.objects
+                cls.objects
                 .select_for_update()
                 .get(id=id)
             )
+            if monto > account.monto_objetivo - account.monto_actual:
+                raise ValidationError(
+                    "La inversión no puede ser mayor a lo que falta para el objetivo."
+                )
             account.monto_actual += monto
+            account.save()
+        return account
+
+    @classmethod  #no usado por ahora
+    def retirarMonto(cls, id, monto):
+        with transaction.atomic():
+            account = (
+                cls.objects
+                .select_for_update()
+                .get(id=id)
+            )
+            account.monto_actual -= monto
             account.save()
         return account
 
@@ -199,7 +237,9 @@ class Inversion(models.Model):
 
     @property
     def reembolso(self):
-        return round(self.monto_invertido + (self.monto_invertido * (self.idea.intereses / 100)))
+        return round(
+            self.monto_invertido+(self.monto_invertido*(self.idea.intereses/100))
+        )
 
     def __str__(self):
         return str(self.id)
@@ -218,25 +258,42 @@ class Inversion(models.Model):
                 "No puede invertir en su propia idea."
             )
     
-    def validarIdeaEstado(self):
+    def validarEstadoIdea(self):
         if self.idea.estado != "P":
             raise ValidationError(
                 "No se puede invertir en una idea no publicada."
             )
 
-    def transaccion(self):
-        self.usuario.realizarInversion(self.usuario.id, self.monto_invertido)
-        self.idea.setMontoActual(self.idea.id, self.monto_invertido)
-        ##hacer en una sola linea, realiazar inversion recibe id de la idea a la cual invertir
-        
+    def transferir(self):
+        with transaction.atomic():
+            self.usuario.retirarDinero(
+                self.usuario.id, 
+                self.monto_invertido,
+            )
+            self.idea.recibirMonto(
+                self.idea.id,
+                self.monto_invertido,
+            )
+
+    def devolucion(self):
+       with transaction.atomic():
+            self.usuario.recibirDinero(
+                self.usuario.id, 
+                self.monto_invertido,
+            )
+            self.idea.retirarMonto(
+                self.idea.id,
+                self.monto_invertido,
+            ) #borrar inversion una vez hecha la devolucion, volver a pagare?
+            
     def clean(self):
-        self.validarMontoInvertido()
+        self.validarEstadoIdea()
         self.validarUsuario()
-        self.validarIdeaEstado()
+        self.validarMontoInvertido()
         
     def save(self, *args, **kwargs):
         self.clean()
-        self.transaccion()
+        self.transferir()
         super(Inversion, self).save(*args, **kwargs)
 
     class Meta:
