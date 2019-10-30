@@ -4,7 +4,6 @@ from django.core.validators import MinValueValidator, MaxValueValidator, MaxLeng
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from datetime import date
-from .tasks import setEstadoFallida
 
 class User(AbstractUser):
     saldo = models.PositiveIntegerField(
@@ -125,6 +124,10 @@ class Idea(models.Model):
     def tiempoRecaudo(self):    
         return self.fecha_limite - self.fecha_publicada
 
+    @property
+    def imagenUsuario(self):
+        return "http://saulvega.pythonanywhere.com"+self.usuario.imagen.url
+
     def __str__(self):
         return self.nombre
 
@@ -154,6 +157,13 @@ class Idea(models.Model):
     def revisarSiExitosa(self):
         if self.monto_actual == self.monto_objetivo:
             self.estado = self.exitosa
+    
+    # def revisarSiFallida(self):
+    #     ideas = Idea.publicas.all()
+    #     for idea in ideas:
+    #         if idea.fecha_limite < date.today():
+    #             idea.estado = 'F'
+    #             idea.save()
             
     def revisarEstado(self):
         if self.estado == self.exitosa:

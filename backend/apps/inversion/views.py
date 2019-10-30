@@ -44,7 +44,7 @@ class CategoriaView(viewsets.ModelViewSet):
 
 
 class IdeaPagination(pagination.PageNumberPagination):
-    page_size = 2
+    page_size = 10
 
 #listar todas las ideas para poder cambiar estado cuando no son publicas, no listar por accion si no por lista.
 class IdeaView(viewsets.ModelViewSet):
