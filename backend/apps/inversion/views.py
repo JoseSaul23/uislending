@@ -7,7 +7,8 @@ from djoser.serializers import TokenCreateSerializer
 from .models import *
 from . import serializers
 from djoser.conf import settings
-
+from background_task.models import Task
+from .dailytask import recorrerIdeas
 
 class UserView(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -51,7 +52,10 @@ class IdeaView(viewsets.ModelViewSet):
     queryset = Idea.publicas.all()
     serializer_class = serializers.IdeaSerializer
     pagination_class = IdeaPagination
-
+    
+    if not Task.objects.filter(verbose_name="Recorrer Ideas").exists():
+        recorrerIdeas(verbose_name="Recorrer Ideas", repeat=86400)
+    
     #Listar inversiones hechas a una idea
     @action(detail=True, methods=['GET'], name='Inversiones de la idea')
     def inversiones(self, request, *args, **kwargs):

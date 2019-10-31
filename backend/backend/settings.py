@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'djoser', #Autenticaciones con token
     'rest_framework.authtoken',
     'corsheaders', #Cross-origin resource sharing
+    'background_task',
 ]
 
 REST_FRAMEWORK = {
@@ -101,6 +102,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    },
+    'OPTIONS': {
+        'timeout': 10,
     }
 }
 
@@ -130,7 +134,7 @@ AUTH_USER_MODEL = 'inversion.User'
 
 LANGUAGE_CODE = 'es-co'
 
-TIME_ZONE = 'America/Bogota'
+TIME_ZONE = 'UTC'
 
 USE_I18N = True
 

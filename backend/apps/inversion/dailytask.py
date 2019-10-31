@@ -1,11 +1,13 @@
-from .models import Idea
-from datetime import date
+from .models import *
+from datetime import date, datetime
+from background_task import background
+from background_task.models import Task
 
-def revisarSiFallida():
-    ideas = Idea.publicas.all()
-    for idea in ideas:
-        if idea.fecha_limite < date.today():
-            idea.estado = 'F'
-            idea.save()
+fechaInicio = datetime(year=datetime.now().year, month=datetime.now().month, day=datetime.now().day, hour=6, minute=1)
 
-  
+@background(schedule=fechaInicio)
+def recorrerIdeas():
+    ideasPublicas = Idea.publicas.all()
+    for ideaPublica in ideasPublicas:
+        ideaPublica.revisarSiFallida()
+        ideaPublica.save()          

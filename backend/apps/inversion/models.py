@@ -3,7 +3,9 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator, MaxLengthValidator
 from django.core.exceptions import ValidationError
 from django.conf import settings
-from datetime import date
+from datetime import date, datetime
+from background_task import background
+
 
 class User(AbstractUser):
     saldo = models.PositiveIntegerField(
@@ -147,55 +149,45 @@ class Idea(models.Model):
                 "El monto actual no puede ser mayor al monto objetivo"
             ) 
 
-    def enviarInversionExitosa(self):
-        self.usuario.recibirDinero(
-                self.usuario.id, 
-                self.monto_actual,
-            )
-        self.monto_actual = 0 #solucion temporal??
-
     def revisarSiExitosa(self):
         if self.monto_actual == self.monto_objetivo:
             self.estado = self.exitosa
     
-    # def revisarSiFallida(self):
-    #     ideas = Idea.publicas.all()
-    #     for idea in ideas:
-    #         if idea.fecha_limite < date.today():
-    #             idea.estado = 'F'
-    #             idea.save()
+    def revisarSiFallida(self):
+        if self.fecha_limite == date.today():
+            self.estado = self.fallida
             
     def revisarEstado(self):
         if self.estado == self.exitosa:
             self.enviarInversionExitosa()
         elif self.estado == self.fallida and self.monto_actual > 0: 
-            inversiones = Inversion.objects.filter(idea=self)
-            for inversion in inversiones: 
-                inversion.devolucion()
-            self.monto_actual = 0  #solucion temporal??
-            pass
+            self.enviarInversionFallida()
         else:
             pass
+    
+    def enviarInversionExitosa(self):
+        with transaction.atomic():
+            self.usuario.recibirDinero(
+                    self.usuario.id, 
+                    self.monto_actual,
+                )
+            self.monto_actual = 0 #solucion temporal??
+
+    def enviarInversionFallida(self):
+        inversiones = Inversion.objects.filter(idea=self)
+        for inversion in inversiones: 
+            inversion.devolucion()
+        self.monto_actual = 0 #solucion temporal??
 
     def clean(self):
         self.validarFechas()
-        self.validarMontoActual() #solo se puede borrar una idea si esta inactiva,fallida o exitosa
+        self.validarMontoActual()
         
     def save(self, *args, **kwargs):
         self.clean()
         self.revisarSiExitosa()
         self.revisarEstado()
-
-        # create_task = False
-        # if self.id is None and self.estado == self.publica:
-        #     # quitar condicion para que sea tambien en caso de modificacion
-        #     create_task = True # set the variable 
-
         super(Idea, self).save(*args, **kwargs)
-
-        # create_task = True
-        # if create_task: 
-        #     setEstadoFallida.apply_async(args=[self.id], eta=self.fecha_limite)
 
     @classmethod
     def recibirMonto(cls, id, monto):
