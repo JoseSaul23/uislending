@@ -61,7 +61,8 @@ class IdeaSerializer(serializers.ModelSerializer):
 
 class InversionSerializer(serializers.ModelSerializer):
     reembolso = serializers.ReadOnlyField()
-    
+    estadoIdea = serializers.ReadOnlyField()
+
     class Meta:
         model = models.Inversion
         fields = (
@@ -71,6 +72,7 @@ class InversionSerializer(serializers.ModelSerializer):
             'reembolso',
             'usuario',
             'idea',
+            'estadoIdea'
         )  
 
     def validate(self, data):

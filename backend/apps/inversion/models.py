@@ -144,24 +144,26 @@ class Idea(models.Model):
             )
 
     def validarMontoActual(self):
-        if self.monto_actual > self.monto_objetivo:
+        if (self.monto_actual > self.monto_objetivo):
            raise ValidationError(
                 "El monto actual no puede ser mayor al monto objetivo"
             ) 
 
     def revisarSiExitosa(self):
-        if self.monto_actual == self.monto_objetivo:
+        if (self.monto_actual == self.monto_objetivo):
             self.estado = self.exitosa
     
     def revisarSiFallida(self):
-        if self.fecha_limite == date.today():
+        if (self.fecha_limite < date.today()):
             self.estado = self.fallida
             
     def revisarEstado(self):
-        if self.estado == self.exitosa:
+        if (self.estado == self.exitosa):
             self.enviarInversionExitosa()
-        elif self.estado == self.fallida and self.monto_actual > 0: 
-            self.enviarInversionFallida()
+        elif ((self.estado == self.fallida or 
+               self.estado == self.inactiva) and 
+               self.monto_actual > 0): 
+            self.enviarInversionFallida() #tambien si idea inactiva.
         else:
             pass
     
@@ -242,6 +244,10 @@ class Inversion(models.Model):
         return round(
             self.monto_invertido+(self.monto_invertido*(self.idea.intereses/100))
         )
+    
+    @property
+    def estadoIdea(self):
+        return self.idea.estado
 
     def __str__(self):
         return str(self.id)
@@ -286,7 +292,9 @@ class Inversion(models.Model):
             self.idea.retirarMonto(
                 self.idea.id,
                 self.monto_invertido,
-            ) #borrar inversion una vez hecha la devolucion, volver a pagare?
+            )
+            self.delete()
+
             
     def clean(self):
         self.validarEstadoIdea()
