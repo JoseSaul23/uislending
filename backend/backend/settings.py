@@ -42,23 +42,23 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'apps.inversion',
-    'djoser', #Autenticaciones con token
     'rest_framework.authtoken',
+    'djoser', #Autenticaciones con token
+    'apps.inversion',
     'corsheaders', #Cross-origin resource sharing
     'background_task',
+    'django_cleanup',
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
     ),
 }
 
 DJOSER = {
     'SERIALIZERS': {
-         'user_create': 'inversion.serializers.UserSerializer'
+         'user_create': 'apps.inversion.serializers.UserSerializer'
     }
 }
 

@@ -3,36 +3,9 @@ from djoser.serializers import UserCreateSerializer
 from drf_extra_fields.fields import Base64ImageField
 from . import models
 
-class UserSerializer(UserCreateSerializer):
-    imagen = Base64ImageField()
-
-    class Meta(UserCreateSerializer.Meta):
-        model = models.User
-        fields = (
-            'id',
-            'password',
-            'username',
-            'first_name',
-            'last_name',
-            'email',
-            'saldo',
-            'imagen'
-        )
-
-
-class CategoriaSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = models.Categoria
-        fields = (
-            'id',
-            'nombre'
-        )
-
 
 class IdeaSerializer(serializers.ModelSerializer):
     imagen = Base64ImageField()
-    imagenUsuario = serializers.ReadOnlyField()
 
     class Meta:
         model = models.Idea
@@ -50,8 +23,10 @@ class IdeaSerializer(serializers.ModelSerializer):
             'imagen',
             'usuario',
             'categoria',
-            'imagenUsuario'
+            'imagenUsuario',
+            'usuario'
         )
+        read_only_fields = ['monto_actual','imagenUsuario','usuario']
 
     def validate(self, data):
         instance = models.Idea(**data)
@@ -59,9 +34,37 @@ class IdeaSerializer(serializers.ModelSerializer):
         return data
 
 
+class UserSerializer(UserCreateSerializer):
+    imagen = Base64ImageField(default='imagenesUsuarios/usuario.png')
+
+    class Meta(UserCreateSerializer.Meta):
+        model = models.User
+        fields = (
+            'id',
+            'password',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'saldo',
+            'imagen',
+        )
+
+
+class CategoriaSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Categoria
+        fields = (
+            'id',
+            'nombre'
+        )
+
+
 class InversionSerializer(serializers.ModelSerializer):
     reembolso = serializers.ReadOnlyField()
     estadoIdea = serializers.ReadOnlyField()
+    usuario = serializers.ReadOnlyField(source='usuario.username')
 
     class Meta:
         model = models.Inversion

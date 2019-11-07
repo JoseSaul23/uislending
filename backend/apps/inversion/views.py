@@ -9,27 +9,8 @@ from . import serializers
 from djoser.conf import settings
 from background_task.models import Task
 from .dailytask import recorrerIdeas
-
-class UserView(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = serializers.UserSerializer
-
-    #Listar ideas publicadas por un usuario    
-    @action(detail=True, methods=['GET'], name='Ideas publicadas')
-    def ideas(self, request, *args, **kwargs):
-        usuario = self.get_object()
-        queryset = Idea.objects.filter(usuario=usuario)
-        serializer = serializers.IdeaSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-    #Listar inversiones realizadas por un usuario 
-    @action(detail=True, methods=['GET'], name='Inversiones realizadas')
-    def inversiones(self, request, *args, **kwargs):
-        usuario = self.get_object()
-        queryset = Inversion.objects.filter(usuario=usuario)
-        serializer = serializers.InversionSerializer(queryset, many=True)
-        return Response(serializer.data)     
-
+from rest_framework import permissions
+   
 
 class CategoriaView(viewsets.ModelViewSet):
     queryset = Categoria.objects.all()
@@ -47,15 +28,34 @@ class CategoriaView(viewsets.ModelViewSet):
 class IdeaPagination(pagination.PageNumberPagination):
     page_size = 10
 
-#listar todas las ideas para poder cambiar estado cuando no son publicas, no listar por accion si no por lista.
+
 class IdeaView(viewsets.ModelViewSet):
-    queryset = Idea.publicas.all()
     serializer_class = serializers.IdeaSerializer
     pagination_class = IdeaPagination
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    #para que solo alguien autenticado pueda editar sus ideas.
+    #readonly; mostrar cuando no este autenticado
+    #IsAuth; mostrar y dejar editar ideas cuando este autenticado
+    http_method_names = ['get', 'post', 'put', 'head','options']
     
     if not Task.objects.filter(verbose_name="Recorrer Ideas").exists():
         recorrerIdeas(verbose_name="Recorrer Ideas", repeat=86400)
     
+    def get_queryset(self):
+        """
+        Esta vista deberia de regresar las ideas publicas
+        si no hay un usuario en la peticion, con un usuario
+        regresa solo las ideas del usuario.
+        """
+        queryset = Idea.publicas.all() #publicas; mostrar publicas cuando no este autenticado
+        user = self.request.user
+        if user.id is not None:
+            return Idea.objects.filter(usuario=user) #usuario; mostrar las ideas del usuario autenticado
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(usuario=self.request.user)
+
     #Listar inversiones hechas a una idea
     @action(detail=True, methods=['GET'], name='Inversiones de la idea')
     def inversiones(self, request, *args, **kwargs):
@@ -66,8 +66,20 @@ class IdeaView(viewsets.ModelViewSet):
 
 
 class InversionView(viewsets.ModelViewSet):
-    queryset = Inversion.objects.all()
     serializer_class = serializers.InversionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'post', 'head','options']
+
+    def get_queryset(self):
+        """
+        Regresa las inversiones hechas por el usuario
+        que realiza la petición.
+        """
+        user = self.request.user
+        return Inversion.objects.filter(usuario=user)
+
+    def perform_create(self, serializer):
+        serializer.save(usuario=self.request.user)
 
 
 class TokenCreateView(utils.ActionViewMixin, generics.GenericAPIView):
@@ -79,7 +91,6 @@ class TokenCreateView(utils.ActionViewMixin, generics.GenericAPIView):
         token_serializer_class = settings.SERIALIZERS.token
         content = {
             'token': token_serializer_class(token).data["auth_token"],
-            'id': serializer.user.id,
             'imagen': 'http://saulvega.pythonanywhere.com'+serializer.user.imagen.url,
         }
         return Response(data=content,status=status.HTTP_200_OK,)

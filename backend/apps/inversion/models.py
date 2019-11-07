@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.conf import settings
 from datetime import date, datetime
 from background_task import background
+from .validators import *
+from PIL import Image
 
 
 class User(AbstractUser):
@@ -112,6 +114,7 @@ class Idea(models.Model):
     imagen = models.ImageField(upload_to='imagenesIdeas/')
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
+        related_name='ideas',
         on_delete=models.CASCADE
     )
     categoria = models.ForeignKey(
@@ -132,22 +135,6 @@ class Idea(models.Model):
 
     def __str__(self):
         return self.nombre
-
-    def validarFechas(self):
-        if self.fecha_limite > self.fecha_reembolso:
-            raise ValidationError(
-                "La fecha limite no puede estar después de la fecha de reembolso"
-            )
-        if self.id is None and self.fecha_limite < date.today(): #None, para que solo lo  haga cuando
-            raise ValidationError(                               #se inserta por primera vez.
-                "La fecha limite no puede estar antes de la fecha de hoy"
-            )
-
-    def validarMontoActual(self):
-        if (self.monto_actual > self.monto_objetivo):
-           raise ValidationError(
-                "El monto actual no puede ser mayor al monto objetivo"
-            ) 
 
     def revisarSiExitosa(self):
         if (self.monto_actual == self.monto_objetivo):
@@ -182,14 +169,23 @@ class Idea(models.Model):
         self.monto_actual = 0 #solucion temporal??
 
     def clean(self):
-        self.validarFechas()
-        self.validarMontoActual()
-        
+        validarFechas(self)
+        validarMontoActual(self)
+
+
     def save(self, *args, **kwargs):
         self.clean()
         self.revisarSiExitosa()
         self.revisarEstado()
+        
         super(Idea, self).save(*args, **kwargs)
+        #redimensionarImagen(obj, height, width)
+        img = Image.open(self.imagen.path) #Abrir imagen
+        if img.height > 300 or img.width > 300:
+            dimensionMaxima = (300, 300)
+            img.thumbnail(dimensionMaxima) #Redimensión
+            img.save(self.imagen.path)
+
 
     @classmethod
     def recibirMonto(cls, id, monto):
@@ -242,7 +238,7 @@ class Inversion(models.Model):
     @property
     def reembolso(self):
         return round(
-            self.monto_invertido+(self.monto_invertido*(self.idea.intereses/100))
+            self.monto_invertido + (self.monto_invertido * (self.idea.intereses/100))
         )
     
     @property
@@ -251,27 +247,7 @@ class Inversion(models.Model):
 
     def __str__(self):
         return str(self.id)
-
-    def validarMontoInvertido(self):
-        if self.monto_invertido > self.usuario.saldo:
-            raise ValidationError("No tiene saldo suficiente")
-        if self.monto_invertido > self.idea.monto_objetivo - self.idea.monto_actual:
-            raise ValidationError(
-                "La inversión no puede ser mayor a lo que falta para el objetivo."
-            )
-
-    def validarUsuario(self):
-        if self.usuario == self.idea.usuario:
-            raise ValidationError(
-                "No puede invertir en su propia idea."
-            )
     
-    def validarEstadoIdea(self):
-        if self.idea.estado != "P":
-            raise ValidationError(
-                "No se puede invertir en una idea no publicada."
-            )
-
     def transferir(self):
         with transaction.atomic():
             self.usuario.retirarDinero(
@@ -294,12 +270,11 @@ class Inversion(models.Model):
                 self.monto_invertido,
             )
             self.delete()
-
-            
+     
     def clean(self):
-        self.validarEstadoIdea()
-        self.validarUsuario()
-        self.validarMontoInvertido()
+        validarEstadoIdea(self)
+        validarUsuarioInversor(self)
+        validarMontoInvertido(self)
         
     def save(self, *args, **kwargs):
         self.clean()
