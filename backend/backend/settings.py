@@ -28,7 +28,7 @@ DEBUG = False
 ALLOWED_HOSTS = [
     'localhost',
     'saulvega.pythonanywhere.com',
-    'uislending.herokuapp.com'
+    'http://uislending.herokuapp.com/'
 ]
 
 CORS_ORIGIN_ALLOW_ALL=True
