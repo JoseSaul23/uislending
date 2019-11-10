@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     'djoser', #Autenticaciones con token
     'apps.inversion',
     'corsheaders', #Cross-origin resource sharing
-    'background_task',
     'django_cleanup',
 ]
 
@@ -150,3 +149,6 @@ STATIC_URL = '/static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT=os.path.join(BASE_DIR, "media")
+
+CELERY_BROKER_URL = 'redis://localhost'
+#CELERY_TASK_SERIALIZER = 'pickle' 

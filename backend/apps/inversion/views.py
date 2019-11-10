@@ -7,8 +7,6 @@ from djoser.serializers import TokenCreateSerializer
 from .models import *
 from . import serializers
 from djoser.conf import settings
-from background_task.models import Task
-from .dailytask import recorrerIdeas
 from rest_framework import permissions
    
 
@@ -37,9 +35,6 @@ class IdeaView(viewsets.ModelViewSet):
     #readonly; mostrar cuando no este autenticado
     #IsAuth; mostrar y dejar editar ideas cuando este autenticado
     http_method_names = ['get', 'post', 'put', 'head','options']
-    
-    if not Task.objects.filter(verbose_name="Recorrer Ideas").exists():
-        recorrerIdeas(verbose_name="Recorrer Ideas", repeat=86400)
     
     def get_queryset(self):
         """
@@ -78,7 +73,7 @@ class InversionView(viewsets.ModelViewSet):
         user = self.request.user
         return Inversion.objects.filter(usuario=user)
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer): #usar pre save??
         serializer.save(usuario=self.request.user)
 
 

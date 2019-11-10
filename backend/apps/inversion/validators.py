@@ -25,10 +25,10 @@ def validarFechas(idea): #enviar solo fecha inicial y fecha final
     if idea.fecha_limite > idea.fecha_reembolso:
         raise ValidationError(
             "La fecha de reembolso no puede estar antes de la fecha limite"
-        )
-    if idea.fecha_limite < date.today(): #None, para que solo lo  haga cuando
+        ) #ver si la fecha de publicacion se mantiene al ser modificada
+    if idea.fecha_limite <= date.today(): #None, para que solo lo  haga cuando #REVISAR
         raise ValidationError(                               #se inserta por primera vez.
-            "La fecha limite no puede estar antes de la fecha de hoy"
+            "La fecha limite no puede estar antes de la fecha de hoy ni ser igual"
         )
 
 def validarMontoActual(idea): #enviar monto actual

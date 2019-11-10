@@ -4,10 +4,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator, MaxLeng
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from datetime import date, datetime
-from background_task import background
 from .validators import *
 from PIL import Image
-
+from .tasks import revisarSiFallida
 
 class User(AbstractUser):
     saldo = models.PositiveIntegerField(
@@ -16,7 +15,7 @@ class User(AbstractUser):
             MinValueValidator(0),
         ]
     )
-    imagen = models.ImageField( #redimensionar imagenes
+    imagen = models.ImageField(
         upload_to='imagenesUsuarios/', 
         default='imagenesUsuarios/usuario.png'
     )
@@ -24,6 +23,15 @@ class User(AbstractUser):
     def __str__(self):
         full_name = self.first_name +" "+ self.last_name
         return full_name
+
+    def save(self, *args, **kwargs):
+        super(User, self).save(*args, **kwargs)
+
+        img = Image.open(self.imagen.path) #Abrir imagen
+        if img.height > 150 or img.width > 150:
+            dimensionMaxima = (150, 150)
+            img.thumbnail(dimensionMaxima) #Redimensión
+            img.save(self.imagen.path)
 
     @classmethod
     def retirarDinero(cls, id, dinero):
@@ -92,7 +100,7 @@ class Idea(models.Model):
         ]
     )
     monto_actual = models.PositiveIntegerField(
-        validators = [
+        validators=[
             MinValueValidator(0),
         ],
         default=0,
@@ -139,10 +147,6 @@ class Idea(models.Model):
     def revisarSiExitosa(self):
         if (self.monto_actual == self.monto_objetivo):
             self.estado = self.exitosa
-    
-    def revisarSiFallida(self):
-        if (self.fecha_limite < date.today()):
-            self.estado = self.fallida
             
     def revisarEstado(self):
         if (self.estado == self.exitosa):
@@ -172,19 +176,31 @@ class Idea(models.Model):
         validarFechas(self)
         validarMontoActual(self)
 
-
     def save(self, *args, **kwargs):
         self.clean()
         self.revisarSiExitosa()
         self.revisarEstado()
-        
+
         super(Idea, self).save(*args, **kwargs)
-        #redimensionarImagen(obj, height, width)
+
         img = Image.open(self.imagen.path) #Abrir imagen
-        if img.height > 300 or img.width > 300:
+        if ((img.height > 300) or (img.width > 300)):
             dimensionMaxima = (300, 300)
             img.thumbnail(dimensionMaxima) #Redimensión
             img.save(self.imagen.path)
+        
+        crearTarea = False
+        if (self.estado == self.publica): #Crear la tarea solo cuando la idea es publicada 
+            crearTarea = True #poner la condicion despues del super save para que no se repita
+
+        if (crearTarea):
+            revisarSiFallida.apply_async(
+                args=[
+                    self.__class__.__name__, 
+                    self.id
+                ], 
+                eta=self.fecha_limite
+            ) 
 
 
     @classmethod
@@ -273,13 +289,16 @@ class Inversion(models.Model):
      
     def clean(self):
         validarEstadoIdea(self)
-        validarUsuarioInversor(self)
-        validarMontoInvertido(self)
         
     def save(self, *args, **kwargs):
         self.clean()
         self.transferir()
+
         super(Inversion, self).save(*args, **kwargs)
+        
+        #Validaciones cuando la idea ha sido guardada con el usuario a validar.
+        validarUsuarioInversor(self)
+        validarMontoInvertido(self)
 
     class Meta:
         db_table = "Inversion"  
