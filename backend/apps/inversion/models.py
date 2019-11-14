@@ -133,13 +133,17 @@ class Idea(models.Model):
     objects = models.Manager()
     publicas = PublicaManager()
 
-    @property
+    @property ##no iria aqui??
     def tiempoRecaudo(self):    
         return self.fecha_limite - self.fecha_publicada
 
+    # @property 
+    # def probabilidadExito(self):    
+    #     #llamar funcion con el .predict que me retorne la probabilidad de la idea.
+
     @property
     def imagenUsuario(self):
-        return "http://saulvega.pythonanywhere.com"+self.usuario.imagen.url
+        return "http://uislending.herokuapp.com"+self.usuario.imagen.url
 
     def __str__(self):
         return self.nombre
