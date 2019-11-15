@@ -86,6 +86,6 @@ class TokenCreateView(utils.ActionViewMixin, generics.GenericAPIView):
         token_serializer_class = settings.SERIALIZERS.token
         content = {
             'token': token_serializer_class(token).data["auth_token"],
-            'imagen': 'http://uislending.herokuapp.com'+serializer.user.imagen.url,
+            'imagen': serializer.user.imagen.url,
         }
         return Response(data=content,status=status.HTTP_200_OK,)

@@ -7,6 +7,9 @@ from datetime import date, datetime
 from .validators import *
 from PIL import Image
 from .tasks import revisarSiFallida
+from gdstorage.storage import GoogleDriveStorage
+
+gd_storage = GoogleDriveStorage()
 
 class User(AbstractUser):
     saldo = models.PositiveIntegerField(
@@ -17,7 +20,8 @@ class User(AbstractUser):
     )
     imagen = models.ImageField(
         upload_to='imagenesUsuarios/', 
-        default='imagenesUsuarios/usuario.png'
+        default='imagenesUsuarios/usuario.png',
+        storage=gd_storage,
     )
 
     def __str__(self):
@@ -27,11 +31,11 @@ class User(AbstractUser):
     def save(self, *args, **kwargs):
         super(User, self).save(*args, **kwargs)
 
-        img = Image.open(self.imagen.path) #Abrir imagen
-        if img.height > 150 or img.width > 150:
-            dimensionMaxima = (150, 150)
-            img.thumbnail(dimensionMaxima) #Redimensión
-            img.save(self.imagen.path)
+        # img = Image.open(self.imagen.url) #Abrir imagen
+        # if img.height > 150 or img.width > 150:
+        #     dimensionMaxima = (150, 150)
+        #     img.thumbnail(dimensionMaxima) #Redimensión
+        #     img.save(self.imagen.path)
 
     @classmethod
     def retirarDinero(cls, id, dinero):
@@ -119,7 +123,10 @@ class Idea(models.Model):
         choices=estadoOpciones,
         default=publica,
     )
-    imagen = models.ImageField(upload_to='imagenesIdeas/')
+    imagen = models.ImageField(
+        upload_to='imagenesIdeas/',
+        storage=gd_storage,
+    )
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         related_name='ideas',
@@ -143,7 +150,7 @@ class Idea(models.Model):
 
     @property
     def imagenUsuario(self):
-        return "http://uislending.herokuapp.com"+self.usuario.imagen.url
+        return self.usuario.imagen.url
 
     def __str__(self):
         return self.nombre
@@ -187,11 +194,11 @@ class Idea(models.Model):
 
         super(Idea, self).save(*args, **kwargs)
 
-        img = Image.open(self.imagen.path) #Abrir imagen
-        if ((img.height > 300) or (img.width > 300)):
-            dimensionMaxima = (300, 300)
-            img.thumbnail(dimensionMaxima) #Redimensión
-            img.save(self.imagen.path)
+        # img = Image.open(self.imagen.path) #Abrir imagen
+        # if ((img.height > 300) or (img.width > 300)):
+        #     dimensionMaxima = (300, 300)
+        #     img.thumbnail(dimensionMaxima) #Redimensión
+        #     img.save(self.imagen.path)
         
         crearTarea = False
         if (self.estado == self.publica): #Crear la tarea solo cuando la idea es publicada 

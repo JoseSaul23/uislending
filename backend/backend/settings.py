@@ -28,7 +28,7 @@ if os.path.isfile(dotenv_file):
 SECRET_KEY = 'h0c(99rqcbh42mg_&-4!-3dq^!@yoj+-=1a=53sc(f9)2av4g^'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'apps.inversion',
     'corsheaders', #Cross-origin resource sharing
     'django_cleanup',
+    'gdstorage',
 ]
 
 REST_FRAMEWORK = {
@@ -155,10 +156,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/static/'
-
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT=os.path.join(BASE_DIR, "media")
@@ -166,3 +169,5 @@ MEDIA_ROOT=os.path.join(BASE_DIR, "media")
 CELERY_BROKER_URL = 'redis://localhost'
 
 DATABASES['default'] = dj_database_url.config(ssl_require=False)
+
+GOOGLE_DRIVE_STORAGE_JSON_KEY_FILE = 'backend/modular-crawler-259114-32d3dc82cb46.json'
