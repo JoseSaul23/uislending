@@ -200,18 +200,18 @@ class Idea(models.Model):
         #     img.thumbnail(dimensionMaxima) #Redimensión
         #     img.save(self.imagen.path)
         
-        crearTarea = False
-        if (self.estado == self.publica): #Crear la tarea solo cuando la idea es publicada 
-            crearTarea = True #poner la condicion despues del super save para que no se repita
+        # crearTarea = False
+        # if (self.estado == self.publica): #Crear la tarea solo cuando la idea es publicada 
+        #     crearTarea = True #poner la condicion despues del super save para que no se repita
 
-        if (crearTarea):
-            revisarSiFallida.apply_async(
-                args=[
-                    self.__class__.__name__, 
-                    self.id
-                ], 
-                eta=self.fecha_limite
-            ) 
+        # if (crearTarea):
+        #     revisarSiFallida.apply_async(
+        #         args=[
+        #             self.__class__.__name__, 
+        #             self.id
+        #         ], 
+        #         eta=self.fecha_limite
+        #     ) 
 
 
     @classmethod
