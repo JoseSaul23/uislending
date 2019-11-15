@@ -1,6 +1,7 @@
 amqp==2.5.1
 billiard==3.6.1.0
 celery==4.3.0
+dj-database-url==0.5.0
 Django==2.2.6
 django-cleanup==4.0.0
 django-cors-headers==3.1.1
@@ -14,6 +15,7 @@ kombu==4.6.5
 more-itertools==7.2.0
 Pillow==6.2.0
 pip-autoremove==0.9.1
+python-dotenv==0.10.3
 pytz==2019.3
 redis==3.3.11
 sqlparse==0.3.0
