@@ -20,7 +20,7 @@ class NotificacionView(viewsets.ModelViewSet):
         que realiza la petición.
         """
         user = self.request.user
-        return Notificacion.objects.filter(receptor=user)
+        return Notificacion.objects.filter(receptor=user, visto=False)
 
 
 class CategoriaView(viewsets.ModelViewSet):

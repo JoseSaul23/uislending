@@ -3,7 +3,6 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator, MaxLengthValidator
 from django.core.exceptions import ValidationError
 from django.conf import settings
-#from datetime import date, datetime
 from .validators import *
 from PIL import Image
 from .tasks import revisarSiFallida
@@ -207,7 +206,16 @@ class Idea(models.Model):
         elif ((self.estado == self.fallida or 
                self.estado == self.inactiva) and 
                self.monto_actual > 0): 
-            self.enviarInversionFallida() #tambien si idea inactiva.
+            self.enviarInversionFallida() #llamar en variable y en la funcion retornar true o false
+            
+            if(self.estado == self.fallida):
+                textoNotificacion = 'Su idea ha vencido y se han devuelto las inversiones.'
+                async_to_sync(notificaciones.notificacion)(self.usuario, textoNotificacion)
+                Notificacion.agregarNotificacion( 
+                    'Idea Fallida',
+                    textoNotificacion,
+                    self.usuario
+                )
         else:
             pass
     
@@ -242,18 +250,18 @@ class Idea(models.Model):
         #     img.thumbnail(dimensionMaxima) #Redimensión
         #     img.save(self.imagen.path)
         
-        # crearTarea = False
-        # if (self.estado == self.publica): #Crear la tarea solo cuando la idea es publicada 
-        #     crearTarea = True #poner la condicion despues del super save para que no se repita
+        crearTarea = False
+        if (self.estado == self.publica): #Crear la tarea solo cuando la idea es publicada 
+            crearTarea = True #poner la condicion despues del super save para que no se repita
 
-        # if (crearTarea):
-        #     revisarSiFallida.apply_async(
-        #         args=[
-        #             self.__class__.__name__, 
-        #             self.id
-        #         ], 
-        #         eta=self.fecha_limite
-        #     ) 
+        if (crearTarea):
+            revisarSiFallida.apply_async(
+                args=[
+                    self.__class__.__name__, 
+                    self.id
+                ], 
+                eta=self.fecha_limite
+            ) 
 
     @classmethod
     def recibirMonto(cls, id, monto):
