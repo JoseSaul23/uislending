@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'corsheaders', #Cross-origin resource sharing
     'django_cleanup',
     'gdstorage',
+    'channels',
 ]
 
 REST_FRAMEWORK = {
@@ -66,6 +67,15 @@ DJOSER = {
     'SERIALIZERS': {
          'user_create': 'apps.inversion.serializers.UserSerializer'
     }
+}
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("localhost", 6379)],
+        },
+    },
 }
 
 MIDDLEWARE = [
@@ -99,8 +109,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'backend.wsgi.application'
-
+#WSGI_APPLICATION = 'backend.wsgi.application'
+ASGI_APPLICATION = 'backend.routing.application'
 
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
@@ -160,8 +170,6 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/static/'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT=os.path.join(BASE_DIR, "media")

@@ -10,6 +10,19 @@ from djoser.conf import settings
 from rest_framework import permissions
    
 
+class NotificacionView(viewsets.ModelViewSet):
+    serializer_class = serializers.NotificacionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Regresa las notificaciones recibidas por el usuario
+        que realiza la petición.
+        """
+        user = self.request.user
+        return Notificacion.objects.filter(receptor=user)
+
+
 class CategoriaView(viewsets.ModelViewSet):
     queryset = Categoria.objects.all()
     serializer_class = serializers.CategoriaSerializer

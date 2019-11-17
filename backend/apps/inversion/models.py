@@ -3,11 +3,13 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator, MaxLengthValidator
 from django.core.exceptions import ValidationError
 from django.conf import settings
-from datetime import date, datetime
+#from datetime import date, datetime
 from .validators import *
 from PIL import Image
 from .tasks import revisarSiFallida
 from gdstorage.storage import GoogleDriveStorage
+from asgiref.sync import async_to_sync
+from . import notificaciones
 
 gd_storage = GoogleDriveStorage()
 
@@ -24,9 +26,15 @@ class User(AbstractUser):
         storage=gd_storage,
     )
 
-    def __str__(self):
-        full_name = self.first_name +" "+ self.last_name
-        return full_name
+    @property
+    def nombreGrupo(self):
+        """
+        Returns a group name based on the user's id to be used by Django Channels.
+        Example usage:
+        user = User.objects.get(pk=1)
+        group_name = user.group_name
+        """
+        return "user_%s" % self.id
 
     def save(self, *args, **kwargs):
         super(User, self).save(*args, **kwargs)
@@ -61,8 +69,38 @@ class User(AbstractUser):
             account.saldo += dinero
             account.save()
 
+    def __str__(self):
+        return self.username
+
     class Meta:
         db_table = "User"
+
+
+class Notificacion(models.Model):
+    nombre = models.CharField(max_length=25)
+    texto = models.CharField(max_length=100)
+    visto = models.BooleanField(default=False)
+    fecha_envio = models.DateField(auto_now_add=True)
+    receptor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE
+    )
+
+    @classmethod
+    def agregarNotificacion(cls, nombre, texto, receptor):
+        nuevaNotificacion = cls(
+            nombre=nombre,
+            texto=texto,
+            receptor=receptor,
+        )
+        nuevaNotificacion.save()
+
+
+    def __str__(self):
+        return self.texto
+
+    class Meta:
+        db_table = "Notificacion"
 
 
 class Categoria(models.Model):
@@ -152,9 +190,6 @@ class Idea(models.Model):
     def imagenUsuario(self):
         return self.usuario.imagen.url
 
-    def __str__(self):
-        return self.nombre
-
     def revisarSiExitosa(self):
         if (self.monto_actual == self.monto_objetivo):
             self.estado = self.exitosa
@@ -162,6 +197,13 @@ class Idea(models.Model):
     def revisarEstado(self):
         if (self.estado == self.exitosa):
             self.enviarInversionExitosa()
+            textoNotificacion = 'Su idea ha sido exitosa y ha recibido las inversiones.'
+            async_to_sync(notificaciones.notificacion)(self.usuario, textoNotificacion)
+            Notificacion.agregarNotificacion( 
+                'Idea Exitosa',
+                textoNotificacion,
+                self.usuario
+            )
         elif ((self.estado == self.fallida or 
                self.estado == self.inactiva) and 
                self.monto_actual > 0): 
@@ -213,7 +255,6 @@ class Idea(models.Model):
         #         eta=self.fecha_limite
         #     ) 
 
-
     @classmethod
     def recibirMonto(cls, id, monto):
         with transaction.atomic():
@@ -242,8 +283,12 @@ class Idea(models.Model):
             account.save()
         return account
 
+    def __str__(self):
+        return self.nombre
+
     class Meta:
         db_table = "Idea"
+        #ordering = "probabilidadExito"
 
 
 class Inversion(models.Model):
@@ -271,9 +316,6 @@ class Inversion(models.Model):
     @property
     def estadoIdea(self):
         return self.idea.estado
-
-    def __str__(self):
-        return str(self.id)
     
     def transferir(self):
         with transaction.atomic():
@@ -310,6 +352,9 @@ class Inversion(models.Model):
         #Validaciones cuando la idea ha sido guardada con el usuario a validar.
         validarUsuarioInversor(self)
         validarMontoInvertido(self)
+
+    def __str__(self):
+        return str(self.id)
 
     class Meta:
         db_table = "Inversion"  

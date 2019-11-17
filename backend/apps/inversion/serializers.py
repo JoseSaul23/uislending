@@ -4,36 +4,6 @@ from drf_extra_fields.fields import Base64ImageField
 from . import models
 
 
-class IdeaSerializer(serializers.ModelSerializer):
-    imagen = Base64ImageField()
-
-    class Meta:
-        model = models.Idea
-        fields = (
-            'id',
-            'nombre',
-            'descripcion',
-            'monto_objetivo',
-            'monto_actual',
-            'intereses',
-            'fecha_publicada',
-            'fecha_limite',
-            'fecha_reembolso',
-            'estado',
-            'imagen',
-            'usuario',
-            'categoria',
-            'imagenUsuario',
-            'usuario'
-        )
-        read_only_fields = ['monto_actual','imagenUsuario','usuario']
-
-    def validate(self, data):
-        instance = models.Idea(**data)
-        instance.clean()
-        return data
-
-
 class UserSerializer(UserCreateSerializer):
     imagen = Base64ImageField(default='imagenesUsuarios/usuario.png')
 
@@ -49,6 +19,43 @@ class UserSerializer(UserCreateSerializer):
             'saldo',
             'imagen',
         )
+
+
+class NotificacionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Notificacion
+        fields = '__all__'
+
+
+class IdeaSerializer(serializers.ModelSerializer):
+    imagen = Base64ImageField()
+
+    class Meta:
+        model = models.Idea
+        fields = (
+            'id',
+            'nombre',
+            'descripcion',
+            'monto_objetivo',
+            'monto_actual',
+            'intereses',
+            'fecha_publicada',
+            'fecha_limite',
+            'fecha_reembolso',
+            'estado',  #Poner como read only y agregar campo is_activa por separado
+            'imagen',
+            'usuario',
+            'categoria',
+            'imagenUsuario',
+            'usuario'
+        )
+        read_only_fields = ['monto_actual','imagenUsuario','usuario']
+
+    def validate(self, data):
+        instance = models.Idea(**data)
+        instance.clean()
+        return data
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
