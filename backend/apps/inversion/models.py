@@ -6,11 +6,9 @@ from django.conf import settings
 from .validators import *
 from PIL import Image
 from .tasks import revisarSiFallida
-from gdstorage.storage import GoogleDriveStorage
 from asgiref.sync import async_to_sync
 from . import notificaciones
 
-gd_storage = GoogleDriveStorage()
 
 class User(AbstractUser):
     saldo = models.PositiveIntegerField(
@@ -22,7 +20,6 @@ class User(AbstractUser):
     imagen = models.ImageField(
         upload_to='imagenesUsuarios/', 
         default='imagenesUsuarios/usuario.png',
-        storage=gd_storage,
     )
 
     @property
@@ -162,7 +159,6 @@ class Idea(models.Model):
     )
     imagen = models.ImageField(
         upload_to='imagenesIdeas/',
-        storage=gd_storage,
     )
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
@@ -183,7 +179,7 @@ class Idea(models.Model):
 
     # @property 
     # def probabilidadExito(self):    
-    #     #llamar funcion con el .predict que me retorne la probabilidad de la idea.
+    #   return predictions.predecir(self)
 
     @property
     def imagenUsuario(self):
@@ -196,21 +192,25 @@ class Idea(models.Model):
     def revisarEstado(self):
         if (self.estado == self.exitosa):
             self.enviarInversionExitosa()
+
+            #enviar texto de notificación para crear notificación y ser enviada.
             textoNotificacion = 'Su idea ha sido exitosa y ha recibido las inversiones.'
             async_to_sync(notificaciones.notificacion)(self.usuario, textoNotificacion)
+
+            #Guardar notificación en base de datos.
             Notificacion.agregarNotificacion( 
                 'Idea Exitosa',
                 textoNotificacion,
                 self.usuario
             )
-        elif ((self.estado == self.fallida or 
-               self.estado == self.inactiva) and 
-               self.monto_actual > 0): 
+        elif (self.estado == self.fallida or self.estado == self.inactiva): 
             self.enviarInversionFallida() #llamar en variable y en la funcion retornar true o false
             
             if(self.estado == self.fallida):
                 textoNotificacion = 'Su idea ha vencido y se han devuelto las inversiones.'
                 async_to_sync(notificaciones.notificacion)(self.usuario, textoNotificacion)
+
+                #Guardar notificación en base de datos.
                 Notificacion.agregarNotificacion( 
                     'Idea Fallida',
                     textoNotificacion,
@@ -251,7 +251,7 @@ class Idea(models.Model):
         #     img.save(self.imagen.path)
         
         crearTarea = False
-        if (self.estado == self.publica): #Crear la tarea solo cuando la idea es publicada 
+        if (self.estado == self.publica and self.monto_actual == 0): #Crear la tarea solo cuando la idea es publicada 
             crearTarea = True #poner la condicion despues del super save para que no se repita
 
         if (crearTarea):
@@ -288,7 +288,7 @@ class Idea(models.Model):
                 .get(id=id)
             )
             account.monto_actual -= monto
-            account.save()
+            account.save() ##QUITAR SAVE?
         return account
 
     def __str__(self):

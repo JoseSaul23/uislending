@@ -12,14 +12,9 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 
 import os
 import dotenv
-import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-dotenv_file = os.path.join(BASE_DIR, ".env")
-if os.path.isfile(dotenv_file):
-    dotenv.load_dotenv(dotenv_file)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -32,8 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
-    'saulvega.pythonanywhere.com',
-    'api-uislending.herokuapp.com',
+    '127.0.0.1',
 ]
 
 CORS_ORIGIN_ALLOW_ALL=True
@@ -53,7 +47,7 @@ INSTALLED_APPS = [
     'apps.inversion',
     'corsheaders', #Cross-origin resource sharing
     'django_cleanup',
-    'storages',
+    'gdstorage',
     'channels',
 ]
 
@@ -109,24 +103,20 @@ TEMPLATES = [
     },
 ]
 
-#WSGI_APPLICATION = 'backend.wsgi.application'
 ASGI_APPLICATION = 'backend.routing.application'
 
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-#     },
-#     'OPTIONS': {
-#         'timeout': 10,
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    },
+}
 
-DATABASES = {}
-DATABASES['default'] = dj_database_url.config(conn_max_age=600)
+# DATABASES = {}
+# DATABASES['default'] = dj_database_url.config(conn_max_age=600)
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
@@ -167,13 +157,13 @@ USE_TZ = True
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
+DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/static/'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT=os.path.join(BASE_DIR, "media")
+MEDIA_ROOT = STATIC_ROOT + 'media'
+MEDIA_URL = STATIC_URL + 'media/'
 
 CELERY_BROKER_URL = 'redis://localhost'
-
-DATABASES['default'] = dj_database_url.config(ssl_require=False)

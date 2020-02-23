@@ -3,7 +3,7 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
-import gdstorage.storage
+#import gdstorage.storage
 
 
 class Migration(migrations.Migration):
@@ -13,16 +13,16 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name='idea',
-            name='imagen',
-            field=models.ImageField(storage=gdstorage.storage.GoogleDriveStorage(), upload_to='imagenesIdeas/'),
-        ),
-        migrations.AlterField(
-            model_name='user',
-            name='imagen',
-            field=models.ImageField(default='imagenesUsuarios/usuario.png', storage=gdstorage.storage.GoogleDriveStorage(), upload_to='imagenesUsuarios/'),
-        ),
+        # migrations.AlterField(
+        #     model_name='idea',
+        #     name='imagen',
+        #     field=models.ImageField(storage=gdstorage.storage.GoogleDriveStorage(), upload_to='imagenesIdeas/'),
+        # ),
+        # migrations.AlterField(
+        #     model_name='user',
+        #     name='imagen',
+        #     field=models.ImageField(default='imagenesUsuarios/usuario.png', storage=gdstorage.storage.GoogleDriveStorage(), upload_to='imagenesUsuarios/'),
+        # ),
         migrations.CreateModel(
             name='Notificacion',
             fields=[

@@ -61,6 +61,7 @@ class IdeaView(viewsets.ModelViewSet):
             return Idea.objects.filter(usuario=user) #usuario; mostrar las ideas del usuario autenticado
         return queryset
 
+    #Se especifica el usuario que esta creando la idea.
     def perform_create(self, serializer):
         serializer.save(usuario=self.request.user)
 
