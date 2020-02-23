@@ -184,8 +184,6 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT=os.path.join(BASE_DIR, "media")
 
-# CELERY_BROKER_URL = 'redis://localhost'
-django.conf.update(BROKER_URL=os.environ['REDIS_URL'],
-                CELERY_RESULT_BACKEND=os.environ['REDIS_URL'])
+CELERY_BROKER_URL = 'redis://localhost'
 
 DATABASES['default'] = dj_database_url.config(ssl_require=False)
