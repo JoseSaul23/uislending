@@ -65,7 +65,7 @@ class IdeaView(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(usuario=self.request.user)
 
-    #Listar inversiones hechas a una idea
+    #Listar inversiones hechas a una idea /ideas/"ID"/inversiones/
     @action(detail=True, methods=['GET'], name='Inversiones de la idea')
     def inversiones(self, request, *args, **kwargs):
         idea = self.get_object()
