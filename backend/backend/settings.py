@@ -185,7 +185,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT=os.path.join(BASE_DIR, "media")
 
 # CELERY_BROKER_URL = 'redis://localhost'
-backend.conf.update(BROKER_URL=os.environ['REDIS_URL'],
+django.conf.update(BROKER_URL=os.environ['REDIS_URL'],
                 CELERY_RESULT_BACKEND=os.environ['REDIS_URL'])
 
 DATABASES['default'] = dj_database_url.config(ssl_require=False)
