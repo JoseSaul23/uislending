@@ -50,7 +50,7 @@ class IdeaSerializer(serializers.ModelSerializer):
             'imagenUsuario',
             'usuario'
         )
-        read_only_fields = ['monto_actual','imagenUsuario','usuario']
+        read_only_fields = ['monto_actual','imagenUsuario','usuario', 'imagen']
 
     def validate(self, data):
         instance = models.Idea(**data)

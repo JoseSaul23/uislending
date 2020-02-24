@@ -29,4 +29,4 @@ urlpatterns = [
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.DEFAULT_FILE_STORAGE)
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_STORAGE)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
