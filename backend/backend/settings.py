@@ -28,7 +28,7 @@ if os.path.isfile(dotenv_file):
 SECRET_KEY = 'h0c(99rqcbh42mg_&-4!-3dq^!@yoj+-=1a=53sc(f9)2av4g^'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -203,6 +203,7 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 USE_S3 = os.getenv('USE_S3') == 'TRUE'
 
 if USE_S3:
+    DEBUG = False
     # aws settings
     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
@@ -210,10 +211,7 @@ if USE_S3:
     AWS_DEFAULT_ACL = None
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
-    # s3 static settings
-    # STATIC_LOCATION = 'static'
-    # STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{STATIC_LOCATION}/'
-    # STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    # heroku static settings
     STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
     STATIC_URL = '/static/'
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -222,6 +220,7 @@ if USE_S3:
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{PUBLIC_MEDIA_LOCATION}/'
     DEFAULT_FILE_STORAGE = 'backend.storage_backends.MediaStorage'
 else:
+    DEBUG = True
     STATIC_URL = '/static/'
     STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
     MEDIA_URL = '/media/'
