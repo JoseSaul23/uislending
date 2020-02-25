@@ -1,4 +1,4 @@
-let token = '8283be606ccd69f19af5d50a43d5d1219e899ab3'
+let token = '0ff856830e5156a8304949c44280ed27409e5954'
 let endpoint = "ws://api-uislending.herokuapp.com/ws/notificaciones/"
 
 let socket = new WebSocket(endpoint + "?token=" + token)
