@@ -296,7 +296,7 @@ class Idea(models.Model):
 
     class Meta:
         db_table = "Idea"
-        ordering = ["monto_actual"]
+        ordering = ["-monto_actual"]
 
 
 class Inversion(models.Model):
