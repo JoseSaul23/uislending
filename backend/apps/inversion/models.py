@@ -353,14 +353,12 @@ class Inversion(models.Model):
         
     def save(self, *args, **kwargs):
         self.clean()
-        self.transferir()
-
-        super(Inversion, self).save(*args, **kwargs)
-        
         #Validaciones cuando la idea ha sido guardada con el usuario a validar.
         validarUsuarioInversor(self)
         validarMontoInvertido(self)
-
+        self.transferir()
+        super(Inversion, self).save(*args, **kwargs)
+        
     def __str__(self):
         return str(self.id)
 
