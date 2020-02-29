@@ -102,5 +102,6 @@ class TokenCreateView(utils.ActionViewMixin, generics.GenericAPIView):
             'token': token_serializer_class(token).data["auth_token"],
             'imagen': serializer.user.imagen.url,
             'saldo': serializer.user.saldo,
+            'id': serializer.user.id,
         }
         return Response(data=content,status=status.HTTP_200_OK,)
